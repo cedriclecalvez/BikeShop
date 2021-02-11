@@ -10,7 +10,6 @@ var dataBike = [
   {name:"LIK099", url:"/images/bike-6.jpg", price:869},
 ]
 
-
 /* GET home page. */
 router.get('/', function(req, res, next) {
 
@@ -60,6 +59,39 @@ router.post('/update-shop', function(req, res, next){
   req.session.dataCardBike[position].quantity = newQuantity;
 
   res.render('shop',{dataCardBike:req.session.dataCardBike})
-})
+});
+
+
+// Set your secret key. Remember to switch to your live secret key in production!
+// See your keys here: https://dashboard.stripe.com/account/apikeys
+const stripe = require('stripe')(process.env.STRIPE_MYSECRET_KEY);
+
+
+
+router.post('/create-checkout-session', async (req, res) => {
+  var ItemsToStrike=[]
+  for (var i=0; i<req.session.dataCardBike.length; i++) {
+    ItemsToStrike.push({
+        price_data: {
+            currency: 'eur',
+            product_data: {
+                name: req.session.dataCardBike[i].name,
+            },
+            unit_amount: req.session.dataCardBike[i].price * 100,
+        },
+        quantity: req.session.dataCardBike[i].quantity,
+    });
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: ItemsToStrike,
+    mode: 'payment',
+    success_url: 'https://localhost:3000',
+    cancel_url: 'https://localhost3000',
+  });
+
+  res.json({ id: session.id });
+});
 
 module.exports = router;
